@@ -1,0 +1,8 @@
+streamlit
+requests
+folium
+streamlit-folium
+numpy
+rasterio
+geopandas
+shapely
