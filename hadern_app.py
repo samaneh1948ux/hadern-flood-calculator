@@ -12,12 +12,12 @@ from shapely.geometry import shape, box
 import os
 
 # ==========================================
-# 1. CLOUD-READY PATHS
+# 1. TRUE CLOUD PATHS (No E: Drive)
 # ==========================================
-BASE_DIR = r"E:\Esri\Online_Data"
-CN_RASTER = os.path.join(BASE_DIR, "Base_File", "cn_zone.tif")
-FLOW_ACC = os.path.join(BASE_DIR, "Base_File", "FlowAcc_Roads.tif")
-BOUNDARY_SHP = os.path.join(BASE_DIR, "Base_File", "Boundary.shp")
+# This tells the cloud to just look in the GitHub folder right next to the script
+CN_RASTER = "Base_File/cn_zone.tif"
+FLOW_ACC = "Base_File/FlowAcc_Roads.tif"
+BOUNDARY_SHP = "Base_File/Boundary.shp"
 
 # UI SETUP
 st.set_page_config(page_title="Hadern Flood Watch", layout="wide")
