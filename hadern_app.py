@@ -64,7 +64,6 @@ try:
         boundary_geojson = json.loads(bnd_gdf.to_json())
         
         tb = bnd_gdf.total_bounds
-        
         lon_pad = (tb[2] - tb[0]) * 0.30  
         lat_pad = (tb[3] - tb[1]) * 0.30  
         
@@ -159,25 +158,7 @@ def get_water_color(value):
     elif value >= 5000: return '#08306b'  
     else: return '#ffffff'
 
-if has_flood_features and geojson_data:
-    folium.GeoJson(
-        geojson_data,
-        name="Runoff",
-        style_function=lambda feature: {
-            'fillColor': get_water_color(feature['properties'].get('gridcode', 0)),
-            'color': '#08306b', # Added a slight border so clicks register easier
-            'weight': 0.5,
-            'fillOpacity': 0.85
-        },
-        # --- THE FIX: BULLETPROOF CLICK POPUP ---
-        popup=folium.GeoJsonPopup(
-            fields=['gridcode'], 
-            aliases=['Runoff Class:'], 
-            labels=True,
-            style="font-family: Arial; font-size: 14px; font-weight: bold;"
-        )
-    ).add_to(m)
-
+# 1. DRAW THE BOUNDARY FIRST (Puts it on the bottom layer)
 if boundary_geojson:
     folium.GeoJson(
         boundary_geojson,
@@ -188,6 +169,24 @@ if boundary_geojson:
             'dashArray': '5, 5',
             'fillOpacity': 0
         }
+    ).add_to(m)
+
+# 2. DRAW THE RUNOFF SECOND (Puts it on the top layer so you can click it)
+if has_flood_features and geojson_data:
+    hover_tooltip = folium.GeoJsonTooltip(fields=['gridcode'], aliases=['Runoff Class (Hover):'])
+    click_popup = folium.GeoJsonPopup(fields=['gridcode'], aliases=['Runoff Class (Click):'])
+
+    folium.GeoJson(
+        geojson_data,
+        name="Runoff",
+        style_function=lambda feature: {
+            'fillColor': get_water_color(feature['properties'].get('gridcode', 0)),
+            'color': 'none', 
+            'weight': 0,     
+            'fillOpacity': 0.85
+        },
+        tooltip=hover_tooltip,
+        popup=click_popup
     ).add_to(m)
 
 if map_bounds:
