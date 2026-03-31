@@ -80,6 +80,15 @@ except Exception as e:
 geojson_data = None
 has_flood_features = False
 
+# --- THE FIX: LABEL TRANSLATOR ---
+def get_class_label(val):
+    if val == 10: return "0 - 10"
+    elif val == 50: return "10 - 50"
+    elif val == 250: return "50 - 250"
+    elif val == 1000: return "250 - 1000"
+    elif val >= 5000: return "> 1000"
+    return "0"
+
 if st.button("🚀 Calculate Live Spatial Runoff"):
     if max_rain > 0:
         with st.spinner("Crunching spatial matrices..."):
@@ -119,6 +128,10 @@ if st.button("🚀 Calculate Live Spatial Runoff"):
 
                 if records:
                     gdf = gpd.GeoDataFrame(records, geometry='geometry')
+                    
+                    # Apply the proper text labels to the data
+                    gdf['Runoff_Range'] = gdf['gridcode'].apply(get_class_label)
+                    
                     if crs is not None:
                         try:
                             gdf.set_crs(crs, inplace=True, allow_override=True)
@@ -158,7 +171,6 @@ def get_water_color(value):
     elif value >= 5000: return '#08306b'  
     else: return '#ffffff'
 
-# 1. DRAW THE BOUNDARY FIRST (Puts it on the bottom layer)
 if boundary_geojson:
     folium.GeoJson(
         boundary_geojson,
@@ -171,10 +183,10 @@ if boundary_geojson:
         }
     ).add_to(m)
 
-# 2. DRAW THE RUNOFF SECOND (Puts it on the top layer so you can click it)
 if has_flood_features and geojson_data:
-    hover_tooltip = folium.GeoJsonTooltip(fields=['gridcode'], aliases=['Runoff Class (Hover):'])
-    click_popup = folium.GeoJsonPopup(fields=['gridcode'], aliases=['Runoff Class (Click):'])
+    # --- THE FIX: TELL POPUPS TO USE THE NEW RANGE LABELS ---
+    hover_tooltip = folium.GeoJsonTooltip(fields=['Runoff_Range'], aliases=['Amount:'], style="font-weight: bold;")
+    click_popup = folium.GeoJsonPopup(fields=['Runoff_Range'], aliases=['Amount:'], style="font-weight: bold;")
 
     folium.GeoJson(
         geojson_data,
