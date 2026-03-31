@@ -165,13 +165,17 @@ if has_flood_features and geojson_data:
         name="Runoff",
         style_function=lambda feature: {
             'fillColor': get_water_color(feature['properties'].get('gridcode', 0)),
-            'color': 'none', 
-            'weight': 0,
+            'color': '#08306b', # Added a slight border so clicks register easier
+            'weight': 0.5,
             'fillOpacity': 0.85
         },
-        # --- THE FIX: ADDED CLICK POPUPS BACK ---
-        tooltip=folium.GeoJsonTooltip(fields=['gridcode'], aliases=['Runoff Class (Hover):']),
-        popup=folium.GeoJsonPopup(fields=['gridcode'], aliases=['Runoff Class (Clicked):'])
+        # --- THE FIX: BULLETPROOF CLICK POPUP ---
+        popup=folium.GeoJsonPopup(
+            fields=['gridcode'], 
+            aliases=['Runoff Class:'], 
+            labels=True,
+            style="font-family: Arial; font-size: 14px; font-weight: bold;"
+        )
     ).add_to(m)
 
 if boundary_geojson:
