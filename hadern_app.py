@@ -12,12 +12,18 @@ from shapely.geometry import shape, box
 import os
 
 # ==========================================
-# 1. TRUE CLOUD PATHS (No E: Drive)
+# 1. AUTO-LOCATOR PATHS 
 # ==========================================
-# This tells the cloud to just look in the GitHub folder right next to the script
-CN_RASTER = "Base_File/cn_zone.tif"
-FLOW_ACC = "Base_File/FlowAcc_Roads.tif"
-BOUNDARY_SHP = "Base_File/Boundary.shp"
+def find_file(target_name):
+    for root, dirs, files in os.walk("."):
+        for name in files:
+            if name.lower() == target_name.lower():
+                return os.path.join(root, name)
+    return target_name 
+
+CN_RASTER = find_file("cn_zone.tif")
+FLOW_ACC = find_file("flowacc_roads.tif")
+BOUNDARY_SHP = find_file("boundary.shp")
 
 # UI SETUP
 st.set_page_config(page_title="Hadern Flood Watch", layout="wide")
@@ -46,20 +52,19 @@ else:
     col2.warning(f"Rain detected! Click calculate to run live Numpy spatial math.")
 
 # ==========================================
-# 2. LOAD BOUNDARY & CALCULATE AGGRESSIVE ZOOM
+# 2. LOAD BOUNDARY & CALCULATE ZOOM
 # ==========================================
 boundary_geojson = None
 map_bounds = None 
 
 try:
-    if os.path.exists(BOUNDARY_SHP):
+    if BOUNDARY_SHP and os.path.exists(BOUNDARY_SHP):
         bnd_gdf = gpd.read_file(BOUNDARY_SHP)
         bnd_gdf = bnd_gdf.to_crs("EPSG:4326")
         boundary_geojson = json.loads(bnd_gdf.to_json())
         
         tb = bnd_gdf.total_bounds
         
-        # MASSIVE 30% BUFFER TO FORCE ZOOM OUT
         lon_pad = (tb[2] - tb[0]) * 0.30  
         lat_pad = (tb[3] - tb[1]) * 0.30  
         
@@ -68,7 +73,7 @@ try:
             [tb[3] + lat_pad, tb[2] + lon_pad]  
         ]
 except Exception as e:
-    st.error(f"Error loading boundary: {e}")
+    pass
 
 # ==========================================
 # 3. OPEN-SOURCE SPATIAL MATH
@@ -113,7 +118,6 @@ if st.button("🚀 Calculate Live Spatial Runoff"):
                 for geom, val in shapes:
                     records.append({'geometry': shape(geom), 'gridcode': int(val)})
 
-                # --- THE RESTORED CRS FIX THAT I ACCIDENTALLY DELETED ---
                 if records:
                     gdf = gpd.GeoDataFrame(records, geometry='geometry')
                     if crs is not None:
@@ -145,7 +149,7 @@ if st.button("🚀 Calculate Live Spatial Runoff"):
 # ==========================================
 st.markdown("### 🗺️ Live Runoff Map (Hadern)")
 
-m = folium.Map(tiles='CartoDB positron')
+m = folium.Map(location=[48.11, 11.48], zoom_start=14, tiles='CartoDB positron')
 
 def get_water_color(value):
     if value == 10: return '#6baed6'      
@@ -165,7 +169,9 @@ if has_flood_features and geojson_data:
             'weight': 0,
             'fillOpacity': 0.85
         },
-        tooltip=folium.GeoJsonTooltip(fields=['gridcode'], aliases=['Runoff Class:'])
+        # --- THE FIX: ADDED CLICK POPUPS BACK ---
+        tooltip=folium.GeoJsonTooltip(fields=['gridcode'], aliases=['Runoff Class (Hover):']),
+        popup=folium.GeoJsonPopup(fields=['gridcode'], aliases=['Runoff Class (Clicked):'])
     ).add_to(m)
 
 if boundary_geojson:
